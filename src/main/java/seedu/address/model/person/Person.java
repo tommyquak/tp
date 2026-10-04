@@ -5,6 +5,7 @@ import static seedu.address.commons.util.CollectionUtil.requireAllNonNull;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import seedu.address.commons.util.ToStringBuilder;
@@ -24,17 +25,29 @@ public class Person {
     // Data fields
     private final Address address;
     private final Set<Tag> tags = new HashSet<>();
+    private final Optional<FollowUp> followUp;
 
     /**
+     * Constructs a person without a follow-up date.
      * Every field must be present and not null.
      */
     public Person(Name name, Phone phone, Email email, Address address, Set<Tag> tags) {
-        requireAllNonNull(name, phone, email, address, tags);
+        this(name, phone, email, address, tags, Optional.empty());
+    }
+
+    /**
+     * Constructs a person with an optional follow-up date.
+     * Every field must be present and not null.
+     */
+    public Person(Name name, Phone phone, Email email, Address address, Set<Tag> tags,
+            Optional<FollowUp> followUp) {
+        requireAllNonNull(name, phone, email, address, tags, followUp);
         this.name = name;
         this.phone = phone;
         this.email = email;
         this.address = address;
         this.tags.addAll(tags);
+        this.followUp = followUp;
     }
 
     public Name getName() {
@@ -59,6 +72,13 @@ public class Person {
      */
     public Set<Tag> getTags() {
         return Collections.unmodifiableSet(tags);
+    }
+
+    /**
+     * Returns the follow-up date of this person, or an empty {@code Optional} if there is none.
+     */
+    public Optional<FollowUp> getFollowUp() {
+        return followUp;
     }
 
     /**
@@ -93,13 +113,14 @@ public class Person {
                 && phone.equals(otherPerson.phone)
                 && email.equals(otherPerson.email)
                 && address.equals(otherPerson.address)
-                && tags.equals(otherPerson.tags);
+                && tags.equals(otherPerson.tags)
+                && followUp.equals(otherPerson.followUp);
     }
 
     @Override
     public int hashCode() {
         // use this method for custom fields hashing instead of implementing your own
-        return Objects.hash(name, phone, email, address, tags);
+        return Objects.hash(name, phone, email, address, tags, followUp);
     }
 
     @Override
@@ -110,6 +131,7 @@ public class Person {
                 .add("email", email)
                 .add("address", address)
                 .add("tags", tags)
+                .add("followUp", followUp.map(FollowUp::toString).orElse("none"))
                 .toString();
     }
 

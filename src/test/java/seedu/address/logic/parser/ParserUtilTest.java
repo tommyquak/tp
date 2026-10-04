@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.person.Address;
 import seedu.address.model.person.Email;
+import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Name;
 import seedu.address.model.person.Phone;
 import seedu.address.model.tag.Tag;
@@ -98,6 +99,23 @@ public class ParserUtilTest {
         String phoneWithWhitespace = WHITESPACE + VALID_PHONE + WHITESPACE;
         Phone expectedPhone = new Phone(VALID_PHONE);
         assertEquals(expectedPhone, ParserUtil.parsePhone(phoneWithWhitespace));
+    }
+
+    @Test
+    public void parseFollowUp_null_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> ParserUtil.parseFollowUp((String) null));
+    }
+
+    @Test
+    public void parseFollowUp_invalidValue_throwsParseException() {
+        assertThrows(ParseException.class, () -> ParserUtil.parseFollowUp("31-02-2026"));
+        assertThrows(ParseException.class, () -> ParserUtil.parseFollowUp("2026-12-25"));
+    }
+
+    @Test
+    public void parseFollowUp_validValueWithWhitespace_returnsTrimmedFollowUp() throws Exception {
+        FollowUp expectedFollowUp = new FollowUp("25-12-2026");
+        assertEquals(expectedFollowUp, ParserUtil.parseFollowUp(WHITESPACE + "25-12-2026" + WHITESPACE));
     }
 
     @Test

@@ -50,6 +50,24 @@ public class EditCommandTest {
     }
 
     @Test
+    public void execute_editPersonWithFollowUp_followUpKept() {
+        Person firstPerson = model.getFilteredPersonList().get(INDEX_FIRST_PERSON.getZeroBased());
+        Person firstPersonWithFollowUp = new PersonBuilder(firstPerson).withFollowUp("25-12-2099").build();
+        model.setPerson(firstPerson, firstPersonWithFollowUp);
+
+        Person editedPerson = new PersonBuilder(firstPersonWithFollowUp).withPhone(VALID_PHONE_BOB).build();
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder().withPhone(VALID_PHONE_BOB).build();
+        EditCommand editCommand = new EditCommand(INDEX_FIRST_PERSON, descriptor);
+
+        String expectedMessage = String.format(EditCommand.MESSAGE_EDIT_PERSON_SUCCESS, Messages.format(editedPerson));
+
+        Model expectedModel = new ModelManager(new AddressBook(model.getAddressBook()), new UserPrefs());
+        expectedModel.setPerson(firstPersonWithFollowUp, editedPerson);
+
+        assertCommandSuccess(editCommand, model, expectedMessage, expectedModel);
+    }
+
+    @Test
     public void execute_someFieldsSpecifiedUnfilteredList_success() {
         Index indexLastPerson = Index.fromOneBased(model.getFilteredPersonList().size());
         Person lastPerson = model.getFilteredPersonList().get(indexLastPerson.getZeroBased());

@@ -1,6 +1,7 @@
 package seedu.address.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.storage.JsonAdaptedPerson.MISSING_FIELD_MESSAGE_FORMAT;
 import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalPersons.BENSON;
@@ -14,8 +15,11 @@ import org.junit.jupiter.api.Test;
 import seedu.address.commons.exceptions.IllegalValueException;
 import seedu.address.model.person.Address;
 import seedu.address.model.person.Email;
+import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Name;
+import seedu.address.model.person.Person;
 import seedu.address.model.person.Phone;
+import seedu.address.testutil.PersonBuilder;
 
 public class JsonAdaptedPersonTest {
     private static final String INVALID_NAME = "R@chel";
@@ -36,6 +40,27 @@ public class JsonAdaptedPersonTest {
     public void toModelType_validPersonDetails_returnsPerson() throws Exception {
         JsonAdaptedPerson person = new JsonAdaptedPerson(BENSON);
         assertEquals(BENSON, person.toModelType());
+    }
+
+    @Test
+    public void toModelType_validFollowUp_returnsPersonWithFollowUp() throws Exception {
+        Person bensonWithFollowUp = new PersonBuilder(BENSON).withFollowUp("25-12-2099").build();
+        JsonAdaptedPerson person = new JsonAdaptedPerson(bensonWithFollowUp);
+        assertEquals(bensonWithFollowUp, person.toModelType());
+    }
+
+    @Test
+    public void toModelType_nullFollowUp_returnsPersonWithoutFollowUp() throws Exception {
+        JsonAdaptedPerson person =
+                new JsonAdaptedPerson(VALID_NAME, VALID_PHONE, VALID_EMAIL, VALID_ADDRESS, VALID_TAGS, null);
+        assertTrue(person.toModelType().getFollowUp().isEmpty());
+    }
+
+    @Test
+    public void toModelType_invalidFollowUp_throwsIllegalValueException() {
+        JsonAdaptedPerson person =
+                new JsonAdaptedPerson(VALID_NAME, VALID_PHONE, VALID_EMAIL, VALID_ADDRESS, VALID_TAGS, "31-02-2099");
+        assertThrows(IllegalValueException.class, FollowUp.MESSAGE_CONSTRAINTS, person::toModelType);
     }
 
     @Test
