@@ -277,7 +277,7 @@ _{Explain here how the data archiving feature will be implemented}_
 * can type fast and prefers typing and keyboard shortcuts to mouse interactions
 * is new to CLI apps, but willing to learn a few short commands
 
-**Value proposition**: Keep track of prospects and clients, what stage each one is at, and when to follow up next, faster than juggling phone contacts, chat apps and spreadsheets.
+**Value proposition**: Keep track of prospects and clients, their status, and when to follow up next, faster than juggling phone contacts, chat apps and spreadsheets.
 
 Easy-Insurance focuses on managing prospects and clients. It does not send messages or make calls, generate quotations or premiums, recommend policies, manage claims, track commissions, or replace the agency's official CRM. It is a single-user app, so nothing is shared with other agents.
 
@@ -293,14 +293,14 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 | `* * *`  | insurance agent looking for a person     | search for a contact by name                            | quickly retrieve the person's information                            |
 | `* * *`  | insurance agent                          | edit a contact's details                                | keep their information up to date when it changes                    |
 | `* * *`  | insurance agent                          | delete a contact                                        | remove people who no longer want to hear from me                     |
-| `* * *`  | insurance agent                          | tag a contact as prospect, client or inactive           | tell at a glance who is still worth chasing                          |
+| `* * *`  | insurance agent                          | set a contact's status to prospect, client or inactive | tell at a glance who is still worth chasing                          |
 | `* * *`  | insurance agent                          | set a follow-up date for a contact                      | remember who I promised to call back                                 |
 | `* * *`  | insurance agent                          | mark a follow-up as done                                | keep my list to what is still pending                                |
 | `* * *`  | insurance agent unfamiliar with CLI      | see a guide to the available commands and their formats | learn to use the app without prior CLI experience                    |
 | `* *`    | insurance agent                          | record when I last contacted someone                    | see who I have not spoken to in a while                              |
 | `* *`    | insurance agent planning my day          | see all follow-ups due today                            | know who to call before I start                                      |
 | `* *`    | insurance agent unfamiliar with CLI      | get a clear error message when I type a command wrongly | learn from the error and type it correctly next time                 |
-| `* *`    | insurance agent                          | filter my list by tag                                   | focus on prospects when planning outreach                            |
+| `* *`    | insurance agent                          | filter my list by status                                | focus on prospects when planning outreach                            |
 | `* *`    | insurance agent with many contacts       | search by partial name or phone number                  | find someone when I only remember part of it                         |
 | `* *`    | insurance agent                          | see overdue follow-ups                                  | catch the people I missed                                            |
 | `* *`    | insurance agent                          | see follow-ups due this week                            | plan ahead when today is already full                                |
@@ -339,7 +339,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 **MSS**
 
 1. Agent provides the new prospect's name and contact details.
-2. System validates the details and saves the contact with the `Prospect` stage.
+2. System validates the details and saves the contact with the prospect status.
 3. System shows the new prospect in the contact list.
 4. Agent sets a follow-up date for the prospect.
 5. System saves the pending follow-up and shows its date with the prospect.
@@ -352,6 +352,9 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
   * 2a1. System explains which details need correction.
   * 2a2. Agent corrects the details.
   * Use case resumes at step 2.
+* 2b. A contact with the same name already exists (ignoring letter case and extra spaces).
+  * 2b1. System informs the agent that the contact already exists and does not add it.
+  * Use case ends.
 * 4a. The follow-up date is invalid.
   * 4a1. System shows an error and does not change the saved contact.
   * Use case resumes at step 4.
@@ -360,24 +363,63 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **MSS**
 
-1. Agent enters `find KEYWORD [MORE_KEYWORDS]`.
-2. System ignores leading and trailing spaces and checks that at least one keyword was supplied.
-3. System searches contact names case-insensitively. A complete word matching any supplied keyword is sufficient.
-4. System shows only matching contacts and reports how many were found.
+1. Agent requests to find contacts using one or more name keywords.
+2. System shows the contacts whose names contain any of the keywords, and how many were found.
 
    Use case ends.
 
 **Extensions**
 
-* 2a. No name keyword was supplied.
-  * 2a1. System shows `Please enter at least one name keyword to search for.`
-  * Use case ends without changing the contact list.
-* 2b. The command format is invalid.
-  * 2b1. System shows the `find KEYWORD [MORE_KEYWORDS]` format.
-  * Use case ends without changing stored contacts.
-* 3a. No contact name contains a matching complete word.
-  * 3a1. System shows an empty result list and reports `0 contacts listed.`
+* 1a. Agent gives no keyword.
+  * 1a1. System shows an error message.
+  * Use case resumes at step 1.
+* 2a. No contact matches the keywords.
+  * 2a1. System shows an empty list.
   * Use case ends.
+
+**Use case: Edit a contact**
+
+**MSS**
+
+1. Agent requests to list contacts.
+2. System shows the list of contacts.
+3. Agent requests to change some details of a specific contact in the list.
+4. System updates the contact and shows the updated details.
+
+   Use case ends.
+
+**Extensions**
+
+* 2a. The list is empty.
+  * Use case ends.
+* 3a. The given contact does not exist in the list.
+  * 3a1. System shows an error message.
+  * Use case resumes at step 2.
+* 3b. No details to change are given, or a new detail is invalid.
+  * 3b1. System explains what needs correction and does not change the contact.
+  * Use case resumes at step 2.
+* 3c. The change would make the contact a duplicate of another contact.
+  * 3c1. System informs the agent that the contact already exists and does not change the contact.
+  * Use case resumes at step 2.
+
+**Use case: Delete a contact**
+
+**MSS**
+
+1. Agent requests to list contacts.
+2. System shows the list of contacts.
+3. Agent requests to delete a specific contact in the list.
+4. System deletes the contact.
+
+   Use case ends.
+
+**Extensions**
+
+* 2a. The list is empty.
+  * Use case ends.
+* 3a. The given contact does not exist in the list.
+  * 3a1. System shows an error message.
+  * Use case resumes at step 2.
 
 **Use case: Complete a follow-up**
 
@@ -402,11 +444,13 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 2. With up to 1000 contacts, listing and finding contacts should complete within two seconds on a typical laptop.
 3. An agent should be able to add, find, edit, and view contacts and manage follow-ups using the keyboard alone.
 4. The app should work without an internet connection and should not transmit contact details to a network service.
-5. If a command is rejected, the error message should identify what needs correction without changing saved contact data.
+5. Contact data should be stored locally in a human-editable text file, so that advanced users can back it up or edit it directly.
+6. The app should be packaged as a single JAR file that runs without an installer.
 
 ### Glossary
 
-* **Contact**: A person recorded in Easy-Insurance, together with their contact details, stage, and any follow-up.
+* **Contact**: A person recorded in Easy-Insurance, together with their contact details, status, and any follow-up.
+* **Status**: Where a contact is in the agent's sales process: prospect, client, or inactive.
 * **Prospect**: A contact the agent may sell a policy to but who is not yet a client.
 * **Client**: A contact who has bought a policy from the agent.
 * **Inactive**: A contact the agent is no longer actively pursuing but keeps in the app.

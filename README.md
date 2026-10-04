@@ -4,7 +4,7 @@
 
 # Easy-Insurance
 
-**Easy-Insurance is a desktop app for junior insurance agents to keep track of their prospects and clients.** It records each person's contact details, what stage they are at (prospect, client or inactive) and when you should next follow up with them, so nobody slips through the cracks.
+**Easy-Insurance is a desktop app for junior insurance agents to keep track of their prospects and clients.** It records each person's contact details, their status (prospect, client or inactive) and when you should next follow up with them, so nobody slips through the cracks.
 
 It is built for agents who type fast: you do almost everything by typing short commands (e.g. `add`, `find`, `done`), while the GUI shows your contact list at a glance.
 
