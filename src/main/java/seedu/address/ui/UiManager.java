@@ -7,6 +7,7 @@ import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.image.Image;
+import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 import seedu.address.MainApp;
 import seedu.address.commons.core.LogsCenter;
@@ -74,8 +75,21 @@ public class UiManager implements Ui {
         alert.setTitle(title);
         alert.setHeaderText(headerText);
         alert.setContentText(contentText);
+        // Grow to fit long messages such as file paths instead of cutting them off
+        alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
         alert.getDialogPane().setId(ALERT_DIALOG_PANE_FIELD_ID);
         alert.showAndWait();
+    }
+
+    /**
+     * Shows an error alert dialog with the given text when the app cannot start, before any window exists,
+     * and exits the application after the user has closed the alert dialog.
+     */
+    public static void showStartupErrorAndExit(String title, String headerText, String contentText) {
+        logger.severe(title + ": " + headerText);
+        showAlertDialogAndWait(null, Alert.AlertType.ERROR, title, headerText, contentText);
+        Platform.exit();
+        System.exit(1);
     }
 
     /**

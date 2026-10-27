@@ -20,6 +20,7 @@ import seedu.address.model.ReadOnlyAddressBook;
 import seedu.address.model.ReadOnlyUserPrefs;
 import seedu.address.model.UserPrefs;
 import seedu.address.model.util.SampleDataUtil;
+import seedu.address.storage.DataBackupException;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.Storage;
@@ -37,11 +38,15 @@ public class MainApp extends Application {
     private static final Logger logger = LogsCenter.getLogger(MainApp.class);
     private static final Path USER_PREFS_FILE_PATH = Paths.get("preferences.json");
     private static final Path ADDRESS_BOOK_FILE_PATH = Paths.get("data", "addressbook.json");
+    private static final String STARTUP_ERROR_TITLE = "Easy-Insurance cannot start";
+    private static final String BACKUP_FAILED_HEADER = "Could not back up the data file";
 
     protected Ui ui;
     protected Logic logic;
     protected Storage storage;
     protected Model model;
+
+    private DataBackupException startupError;
 
     @Override
     public void init() throws Exception {
@@ -53,7 +58,14 @@ public class MainApp extends Application {
         JsonAddressBookStorage addressBookStorage = new JsonAddressBookStorage(ADDRESS_BOOK_FILE_PATH);
         storage = new StorageManager(addressBookStorage, userPrefsStorage);
 
-        model = initModelManager(storage, userPrefs);
+        try {
+            model = initModelManager(storage, userPrefs);
+        } catch (DataBackupException e) {
+            // Logic and UI are not created, so nothing can save over the data file
+            logger.severe("Stopping startup because the data file could not be backed up: " + e.getMessage());
+            startupError = e;
+            return;
+        }
 
         logic = new LogicManager(model, storage);
 
@@ -64,8 +76,11 @@ public class MainApp extends Application {
      * Returns a {@code ModelManager} with the data from {@code storage}'s address book and {@code userPrefs}. <br>
      * The data from the sample address book will be used instead if {@code storage}'s address book is not found,
      * or an empty address book will be used instead if errors occur when reading {@code storage}'s address book.
+     *
+     * @throws DataBackupException if the address book cannot be read and could not be backed up,
+     *     since starting with an empty address book would later save over the only copy of the data.
      */
-    private Model initModelManager(Storage storage, ReadOnlyUserPrefs userPrefs) {
+    Model initModelManager(Storage storage, ReadOnlyUserPrefs userPrefs) throws DataBackupException {
         logger.info("Using data file : " + storage.getAddressBookFilePath());
 
         Optional<ReadOnlyAddressBook> addressBookOptional;
@@ -77,6 +92,8 @@ public class MainApp extends Application {
                         + " populated with sample Easy-Insurance contacts.");
             }
             initialData = addressBookOptional.orElseGet(SampleDataUtil::getSampleAddressBook);
+        } catch (DataBackupException e) {
+            throw e;
         } catch (DataLoadingException e) {
             logger.warning("Data file at " + storage.getAddressBookFilePath() + " could not be loaded."
                     + " Will be starting with an empty Easy-Insurance contact list.");
@@ -118,8 +135,26 @@ public class MainApp extends Application {
         return initializedPrefs;
     }
 
+    /**
+     * Returns the message shown when startup stops because the data file in {@code e} could not be backed up.
+     */
+    static String getBackupFailureMessage(DataBackupException e) {
+        Path backupFilePath = e.getBackupFilePath();
+        return "The data file could not be loaded:\n" + e.getDataFilePath().toAbsolutePath()
+                + "\n\nA backup copy could not be saved to:\n" + backupFilePath.toAbsolutePath()
+                + "\n\nTo keep your data safe, Easy-Insurance will close and leave the data file unchanged."
+                + " Make sure the data folder is writable and has no folder named " + backupFilePath.getFileName()
+                + ", then start the app again.";
+    }
+
     @Override
     public void start(Stage primaryStage) {
+        if (startupError != null) {
+            UiManager.showStartupErrorAndExit(STARTUP_ERROR_TITLE, BACKUP_FAILED_HEADER,
+                    getBackupFailureMessage(startupError));
+            return;
+        }
+
         logger.info("Starting Easy-Insurance " + MainApp.VERSION);
         ui.start(primaryStage);
     }
@@ -127,6 +162,10 @@ public class MainApp extends Application {
     @Override
     public void stop() {
         logger.info("============================ [ Stopping Easy-Insurance ] =============================");
+        if (model == null) {
+            // Startup stopped before the model was created, so there are no changed preferences to save
+            return;
+        }
         try {
             storage.saveUserPrefs(model.getUserPrefs());
         } catch (IOException e) {

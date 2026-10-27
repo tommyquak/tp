@@ -1,20 +1,25 @@
 package seedu.address.storage;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalPersons.ALICE;
 import static seedu.address.testutil.TypicalPersons.HOON;
 import static seedu.address.testutil.TypicalPersons.IDA;
 import static seedu.address.testutil.TypicalPersons.getTypicalAddressBook;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -168,17 +173,60 @@ public class JsonAddressBookStorageTest {
     }
 
     @Test
-    public void readAddressBookWithBackup_backupFails_stillThrowsDataLoadingException() throws Exception {
-        // EP: reading fails and the backup destination is unusable; preserve the load failure.
+    public void readAddressBookWithBackup_backupDestinationIsFolder_throwsDataBackupException() throws Exception {
+        // EP: reading fails and the backup destination is unusable; the original must stay unchanged.
         Path filePath = testFolder.resolve("addressbook.json");
         Files.copy(TEST_DATA_FOLDER.resolve("notJsonFormatAddressBook.json"), filePath);
+        byte[] originalBytes = Files.readAllBytes(filePath);
         // A non-empty folder at the backup path cannot be replaced, so the copy fails
         Path backupPath = JsonAddressBookStorage.getBackupFilePath(filePath);
         Files.createDirectories(backupPath.resolve("blocker"));
 
-        assertThrows(DataLoadingException.class, () -> new JsonAddressBookStorage(filePath)
-                .readAddressBookWithBackup());
+        DataBackupException e = Assertions.assertThrows(DataBackupException.class, () ->
+                new JsonAddressBookStorage(filePath).readAddressBookWithBackup());
+
+        assertEquals(filePath, e.getDataFilePath());
+        assertEquals(backupPath, e.getBackupFilePath());
         assertTrue(Files.isDirectory(backupPath));
+        assertArrayEquals(originalBytes, Files.readAllBytes(filePath));
+    }
+
+    @Test
+    public void readAddressBookWithBackup_folderNotWritable_throwsDataBackupException() throws Exception {
+        // EP: reading fails and the data folder is read-only, so no backup can be created there.
+        Path dataFolder = Files.createDirectories(testFolder.resolve("data"));
+        Path filePath = dataFolder.resolve("addressbook.json");
+        Files.copy(TEST_DATA_FOLDER.resolve("notJsonFormatAddressBook.json"), filePath);
+        byte[] originalBytes = Files.readAllBytes(filePath);
+        File folder = dataFolder.toFile();
+
+        try {
+            // Skips where a read-only folder is not enforced, e.g. on Windows or when running as root
+            assumeTrue(folder.setWritable(false));
+            assumeFalse(canCreateFileIn(dataFolder));
+
+            DataBackupException e = Assertions.assertThrows(DataBackupException.class, () ->
+                    new JsonAddressBookStorage(filePath).readAddressBookWithBackup());
+
+            assertEquals(filePath, e.getDataFilePath());
+            assertFalse(Files.exists(JsonAddressBookStorage.getBackupFilePath(filePath)));
+            assertArrayEquals(originalBytes, Files.readAllBytes(filePath));
+        } finally {
+            folder.setWritable(true);
+        }
+    }
+
+    @Test
+    public void readAddressBookWithBackup_dataPathIsFolder_throwsDataLoadingExceptionOnly() throws Exception {
+        // EP: the data path is a folder, which cannot be saved over, so no backup is needed.
+        Path filePath = Files.createDirectories(testFolder.resolve("addressbook.json"));
+        JsonAddressBookStorage storage = new JsonAddressBookStorage(filePath);
+
+        DataLoadingException e = Assertions.assertThrows(DataLoadingException.class,
+                storage::readAddressBookWithBackup);
+
+        assertFalse(e instanceof DataBackupException);
+        assertFalse(Files.exists(JsonAddressBookStorage.getBackupFilePath(filePath)));
     }
 
     @Test
@@ -189,6 +237,18 @@ public class JsonAddressBookStorageTest {
 
         assertFalse(JsonAddressBookStorage.backUpFile(folder).isPresent());
         assertFalse(Files.exists(JsonAddressBookStorage.getBackupFilePath(folder)));
+    }
+
+    /**
+     * Returns true if a new file can be created in {@code folder}, deleting the probe file afterwards.
+     */
+    private static boolean canCreateFileIn(Path folder) {
+        try {
+            Files.delete(Files.createFile(folder.resolve("probe.tmp")));
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     /**
@@ -204,6 +264,7 @@ public class JsonAddressBookStorageTest {
 
         Path backupPath = JsonAddressBookStorage.getBackupFilePath(filePath);
         assertTrue(Files.exists(backupPath));
+        assertEquals(-1L, Files.mismatch(TEST_DATA_FOLDER.resolve(fileInTestDataFolder), filePath));
         assertEquals(-1L, Files.mismatch(filePath, backupPath));
     }
 }

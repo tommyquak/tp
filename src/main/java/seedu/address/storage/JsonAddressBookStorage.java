@@ -71,15 +71,23 @@ public class JsonAddressBookStorage {
     /**
      * Similar to {@link #readAddressBook()}, but if the data file exists and cannot be loaded,
      * copies it to {@code <file name>.bak} in the same folder before rethrowing the exception.
-     * A failed copy is logged and does not stop the exception from being rethrown.
      *
+     * @throws DataBackupException if the data file cannot be loaded and the copy could not be made.
+     *     The data file is left unchanged, so callers must not save over it.
      * @throws DataLoadingException if loading the data from storage failed.
      */
     public Optional<ReadOnlyAddressBook> readAddressBookWithBackup() throws DataLoadingException {
         try {
             return readAddressBook(filePath);
         } catch (DataLoadingException e) {
-            backUpFile(filePath);
+            try {
+                backUpFile(filePath);
+            } catch (IOException | SecurityException backupError) {
+                DataBackupException backupException =
+                        new DataBackupException(filePath, getBackupFilePath(filePath), backupError);
+                backupException.addSuppressed(e);
+                throw backupException;
+            }
             throw e;
         }
     }
@@ -97,9 +105,12 @@ public class JsonAddressBookStorage {
 
     /**
      * Copies {@code filePath} to its backup path, replacing any older backup.
-     * Returns the backup path, or {@code Optional.empty()} if the copy could not be made.
+     * Returns the backup path, or {@code Optional.empty()} if {@code filePath} is not a regular file,
+     * since such a path cannot be saved over and so needs no backup.
+     *
+     * @throws IOException if the copy could not be made.
      */
-    static Optional<Path> backUpFile(Path filePath) {
+    static Optional<Path> backUpFile(Path filePath) throws IOException {
         requireNonNull(filePath);
         Path backupPath = getBackupFilePath(filePath);
         assert !backupPath.equals(filePath) : "Backup must not overwrite the data file";
@@ -112,8 +123,8 @@ public class JsonAddressBookStorage {
         try {
             Files.copy(filePath, backupPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException | SecurityException e) {
-            logger.warning("Could not back up data file " + filePath + " to " + backupPath + ": " + e);
-            return Optional.empty();
+            logger.severe("Could not back up data file " + filePath + " to " + backupPath + ": " + e);
+            throw e;
         }
 
         logger.info("Backed up data file " + filePath + " to " + backupPath);

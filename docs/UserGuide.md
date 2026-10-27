@@ -339,6 +339,7 @@ Easy-Insurance data is saved automatically as a JSON file `data/addressbook.json
 
 **Caution:**
 If your changes make the data file invalid, Easy-Insurance copies it to `addressbook.json.bak` in the same `data` folder and then starts with an empty contact list. The invalid `addressbook.json` is overwritten after your next successful command, but the `.bak` copy is kept. To recover, close the app, fix the `.bak` file and rename it back to `addressbook.json`. A later backup replaces the previous `.bak` file, so we still recommend keeping your own copy before editing.<br>
+If Easy-Insurance cannot create the `.bak` file (for example, because the `data` folder is read-only), it shows an error naming both files and closes without changing `addressbook.json`. Make the `data` folder writable, then start the app again.<br>
 Two contacts whose names differ only in case or extra spaces also make the data file invalid and cause it to load as an empty contact list.<br>
 Furthermore, certain edits can cause Easy-Insurance to behave in unexpected ways (e.g., if a value entered is outside of the acceptable range). Therefore, edit the data file only if you are confident that you can update it correctly.
 </box>

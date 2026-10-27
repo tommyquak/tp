@@ -687,6 +687,14 @@ testers are expected to do more *exploratory* testing.
    1. Relaunch the app.<br>
       Expected: The app starts with an empty contact list, because the file could not be read. A copy of the invalid file is saved as `data/addressbook.json.bak`. Restoring the original value and relaunching brings the contacts back.
 
+   1. Close the app. Make sure `data/addressbook.json` still has `"status": "lead"`. Delete `data/addressbook.json.bak`, then create a folder with that same name in `data` and put any file inside it.
+
+   1. Relaunch the app.<br>
+      Expected: An error says the data file could not be backed up and shows the full paths of both files. The app closes after you dismiss the error, and `data/addressbook.json` is unchanged.
+
+   1. Delete the `data/addressbook.json.bak` folder and relaunch the app.<br>
+      Expected: The app starts with an empty contact list and a new `data/addressbook.json.bak` is saved, as above.
+
 1. Dealing with an older data file
 
    1. Close the app. Remove the `"status"` and `"followUp"` fields from one contact in `data/addressbook.json`.

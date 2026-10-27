@@ -51,6 +51,7 @@ public interface Storage {
      * Same as {@link #readAddressBook()}, but backs up a data file that exists and cannot be loaded,
      * so that it is not lost when the app later saves over it.
      *
+     * @throws DataBackupException if the data file cannot be loaded and the backup could not be made.
      * @throws DataLoadingException if loading the data from storage failed.
      */
     Optional<ReadOnlyAddressBook> readAddressBookWithBackup() throws DataLoadingException;
