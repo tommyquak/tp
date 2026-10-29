@@ -45,6 +45,18 @@ public class AddressBookTest {
     }
 
     @Test
+    public void resetData_withAddressBook_copiesContactsIndependently() {
+        // EP: the replacement is another AddressBook, which is copied without rechecking for duplicates.
+        AddressBook original = getTypicalAddressBook();
+        addressBook.resetData(original);
+        assertTrue(addressBook.isIdenticalTo(original));
+
+        addressBook.removePerson(ALICE);
+        assertFalse(addressBook.hasPerson(ALICE));
+        assertTrue(original.hasPerson(ALICE));
+    }
+
+    @Test
     public void resetData_withDuplicatePersons_throwsDuplicatePersonException() {
         // EP: duplicate identities, even when addresses and tags differ.
         Person editedAlice = new PersonBuilder(ALICE).withAddress(VALID_ADDRESS_BOB).withTags(VALID_TAG_HUSBAND)

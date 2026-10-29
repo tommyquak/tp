@@ -45,6 +45,11 @@ public class AddressBook implements ReadOnlyAddressBook {
     public void resetData(ReadOnlyAddressBook newData) {
         requireNonNull(newData);
 
+        if (newData instanceof AddressBook otherAddressBook) {
+            // Another AddressBook already holds no duplicates, so skip the check that compares every pair.
+            persons.setPersons(otherAddressBook.persons);
+            return;
+        }
         setPersons(newData.getPersonList());
     }
 
