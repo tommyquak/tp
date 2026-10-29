@@ -158,8 +158,17 @@ public class JsonAddressBookStorage {
             }
         }
 
-        Files.createDirectories(target.getParent());
-        Path temporaryFile = Files.createTempFile(target.getParent(), ".addressbook-", ".tmp");
+        checkNoFileBlocksFolder(filePath);
+        Path temporaryFile;
+        try {
+            Files.createDirectories(target.getParent());
+            temporaryFile = Files.createTempFile(target.getParent(), ".addressbook-", ".tmp");
+        } catch (AccessDeniedException e) {
+            // Report the data file, not the folder or temporary file that could not be created.
+            AccessDeniedException denied = new AccessDeniedException(filePath.toString());
+            denied.initCause(e);
+            throw denied;
+        }
         try {
             writeAddressBook(addressBook, temporaryFile);
             copyPermissionsIfSupported(target, temporaryFile);
@@ -172,6 +181,22 @@ public class JsonAddressBookStorage {
                 logger.warning("Could not remove temporary data file " + temporaryFile + ": " + cleanupError);
             }
             throw e;
+        }
+    }
+
+    /**
+     * Throws an {@code IOException} that names the problem if a folder in {@code filePath} exists
+     * but is not a folder, e.g. a file named {@code data} where the {@code data} folder should be.
+     */
+    private static void checkNoFileBlocksFolder(Path filePath) throws IOException {
+        for (Path folder = filePath.getParent(); folder != null; folder = folder.getParent()) {
+            if (Files.isDirectory(folder)) {
+                return;
+            }
+            if (Files.exists(folder)) {
+                throw new IOException(String.format("\"%s\" exists but is not a folder, so %s cannot be saved.",
+                        folder, filePath));
+            }
         }
     }
 
