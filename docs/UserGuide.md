@@ -291,6 +291,9 @@ Format: `note INDEX nt/NOTE`
 * The index must be a positive integer and refer to a displayed contact.
 * `nt/NOTE` is required and cannot be blank.
 * The note may contain spaces.
+* Leave a space between `INDEX` and `nt/`. For example, `note 1nt/Called client` is rejected.
+* Everything after the first `nt/` is saved as the note, including text that looks like a prefix.
+  For example, `note 1 nt/Asked about t/ and nt/ prefixes` saves the note `Asked about t/ and nt/ prefixes`.
 * New notes are appended to the contact's existing interaction history. Existing notes are not replaced.
 * Interaction notes remain attached to the contact when other contact details are edited or when a follow-up is marked as completed.
 

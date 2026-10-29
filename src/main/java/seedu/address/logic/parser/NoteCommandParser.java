@@ -18,20 +18,10 @@ public class NoteCommandParser implements Parser<NoteCommand> {
     public NoteCommand parse(String args) throws ParseException {
         requireNonNull(args);
 
-        String trimmedArgs = args.trim();
-        String notePrefix = PREFIX_NOTE.getPrefix();
+        ArgumentMultimap argMultimap =
+                ArgumentTokenizer.tokenize(args, PREFIX_NOTE);
 
-        int prefixPosition = trimmedArgs.indexOf(notePrefix);
-
-        if (prefixPosition < 0) {
-            throw new ParseException(
-                    String.format(
-                            MESSAGE_INVALID_COMMAND_FORMAT,
-                            NoteCommand.MESSAGE_USAGE));
-        }
-
-        String preamble =
-                trimmedArgs.substring(0, prefixPosition).trim();
+        String preamble = argMultimap.getPreamble();
 
         if (preamble.isEmpty()
                 || preamble.matches(".*\\s+.*")) {
@@ -43,9 +33,18 @@ public class NoteCommandParser implements Parser<NoteCommand> {
 
         Index index = ParserUtil.parseIndex(preamble);
 
-        String noteText =
-                trimmedArgs.substring(
-                        prefixPosition + notePrefix.length());
+        if (argMultimap.getValue(PREFIX_NOTE).isEmpty()) {
+            throw new ParseException(
+                    String.format(
+                            MESSAGE_INVALID_COMMAND_FORMAT,
+                            NoteCommand.MESSAGE_USAGE));
+        }
+
+        // The note is free text, so everything after the first nt/ belongs to it,
+        // including any later nt/ or other prefixes.
+        String firstNotePrefix = " " + PREFIX_NOTE.getPrefix();
+        String noteText = args.substring(
+                args.indexOf(firstNotePrefix) + firstNotePrefix.length());
 
         if (!InteractionNote.isValidNote(noteText)) {
             throw new ParseException(
