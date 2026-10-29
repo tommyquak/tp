@@ -143,8 +143,10 @@ Tags ignore case, so `t/VIP` and `t/vip` are the same tag and a contact keeps on
 </box>
 
 Names with extra spaces are saved with single spaces. A contact cannot be added if its name matches an existing contact's name after ignoring case and extra spaces.
-Names must start with a letter, including accented letters, and end with a letter or digit. Punctuation cannot
-appear at the end of a name. Names may then contain letters, digits, spaces, hyphens (`-`), apostrophes (`'`),
+Names must start with a letter, including accented letters, and end with a letter or digit. The only punctuation
+allowed at the end is a period directly after a letter, as in `Martin Luther King Jr.`, so `Alice-` and `Alice .`
+are rejected. Digits must be decimal digits (0 to 9, or the same digits in another script), so number symbols
+like `½` and `²` are rejected. Names may then contain letters, digits, spaces, hyphens (`-`), apostrophes (`'`),
 periods (`.`), commas (`,`), and slashes (`/`), so names such as
 `Anne-Marie`, `O'Connor`, and `Raj s/o Kumar` are accepted. Phone numbers must contain at least three
 digits. They may start with `+` and include spaces or dashes between digits, for example `+65 9123-4567`.

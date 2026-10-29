@@ -71,7 +71,21 @@ public class NameTest {
         assertFalse(Name.isValidName(" Alice"));
         assertFalse(Name.isValidName("Alice-"));
         assertFalse(Name.isValidName("Alice'"));
-        assertFalse(Name.isValidName("Alice."));
+        assertFalse(Name.isValidName("Alice,"));
+        assertFalse(Name.isValidName("Alice/"));
+
+        // EP: a final period that does not come directly after a letter.
+        assertFalse(Name.isValidName("Alice ."));
+        assertFalse(Name.isValidName("Alice -."));
+        assertFalse(Name.isValidName("Alice-."));
+        assertFalse(Name.isValidName("Alice.."));
+        assertFalse(Name.isValidName("Agent 007."));
+
+        // EP: number symbols that are not decimal digits.
+        assertFalse(Name.isValidName("A\u00bd")); // A½
+        assertFalse(Name.isValidName("John\u00b2")); // John²
+        assertFalse(Name.isValidName("Alice\u00bc")); // Alice¼
+        assertFalse(Name.isValidName("Peter \u00bd Tan"));
 
         // EP: names starting with a letter and containing only letters, digits and spaces.
         assertTrue(Name.isValidName("peter jack")); // alphabets only
@@ -86,6 +100,18 @@ public class NameTest {
         assertTrue(Name.isValidName("Tan, Alice"));
         assertTrue(Name.isValidName("Raj s/o Kumar"));
         assertTrue(Name.isValidName("Aisha d/o Rahman"));
+
+        // EP: a final period directly after a letter, as in name suffixes.
+        assertTrue(Name.isValidName("Martin Luther King Jr."));
+        assertTrue(Name.isValidName("Robert Downey Sr."));
+        assertTrue(Name.isValidName("Alice."));
+        assertTrue(Name.isValidName("A.")); // Boundary value: shortest name with a final period.
+        assertTrue(Name.isValidName("Jose\u0301 Jr.")); // composes to a letter before the period
+        assertTrue(Name.isValidName("\u0921\u0949.")); // combining mark kept on the letter
+
+        // EP: decimal digits from any script.
+        assertTrue(Name.isValidName("Ali \u0663")); // Arabic-Indic digit three
+        assertTrue(Name.isValidName("Ali \u0663 Tan"));
 
         // EP: Unicode letters, represented in both composed and decomposed forms.
         assertTrue(Name.isValidName("José Núñez"));

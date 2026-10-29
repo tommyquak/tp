@@ -59,6 +59,14 @@ public class JsonAdaptedPersonTest {
     }
 
     @Test
+    public void toModelType_nameEndingWithSuffixPeriod_returnsPerson() throws Exception {
+        // EP: a name suffix such as "Jr." was valid in older data files and must still load.
+        JsonAdaptedPerson person = new JsonAdaptedPerson(
+                "Martin Luther King Jr.", VALID_PHONE, VALID_EMAIL, VALID_ADDRESS, VALID_TAGS);
+        assertEquals("Martin Luther King Jr.", person.toModelType().getName().fullName);
+    }
+
+    @Test
     public void toModelType_statusRoundTrip_returnsPerson() throws Exception {
         // EP: an explicitly supplied valid status survives conversion.
         assertEquals(CLIENT_BENSON, new JsonAdaptedPerson(CLIENT_BENSON).toModelType());
