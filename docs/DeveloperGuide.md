@@ -1279,3 +1279,50 @@ and Linux, or **Cmd+A / Cmd+C / Cmd+V** on macOS. Do not submit copied examples 
 
    1. Relaunch the app.<br>
       Expected: The contact loads with status `PROSPECT`, no follow-up, no last-contact date and no interaction notes. Nothing else is lost.
+
+--------------------------------------------------------------------------------------------------------------------
+
+## **Appendix: Planned Enhancements**
+
+Team size: 5
+
+The items below are known flaws in the current version. Each item describes the flaw and the exact change we plan to make in a future version.
+
+1. **Distinguish contacts that share a name and flag likely duplicates under reordered names.**
+   Uniqueness currently uses only the name, ignoring case and extra spaces. Two different people named `John Tan`
+   cannot both be stored, while `Tan John` can be added as a second entry for the same person. We plan to give every
+   contact a stable ID, allow the same name on different IDs, and show a confirmation when a new contact shares a
+   phone number or email with an existing contact. The agent can then keep two people who share contact details or
+   cancel a likely duplicate without losing either contact.
+
+1. **Stop a second window or a hand edit of the data file from being overwritten.**
+   Easy-Insurance reads `data/addressbook.json` once at startup. After that, every command that changes contact data writes the app's own copy over the file. If two windows are open on the same `data` folder, or the user edits the file while the app is running, the last save wins and the other changes are lost with no warning. For example, window 1 runs `add n/Bob Lim p/92345678 e/bob@example.com a/2 Road` and then window 2 runs `add n/Carol Ng p/93456789 e/carol@example.com a/3 Road`. Both show a success message, but after a restart Bob Lim is gone.<br>
+   We plan to make the app remember a hash of the data file's contents when it loads the file and after each of its own successful saves. Before each save, it hashes the file again. If the contents have changed, the app does not save, rolls back the change in this window as it does for other save errors, and shows: `The data file was changed outside this window, so this change was not saved. Restart Easy-Insurance to load the latest data.` In the example above, window 2's `add` then shows this message and Bob Lim is kept.
+
+1. **Reject prefixes typed in capitals instead of saving them into the previous field.**
+   Prefixes are case-sensitive, so a capitalised prefix after another field is kept as part of that field's value. For example, `add n/Ann Lee p/91234567 e/ann@example.com a/1 Road ST/CLIENT F/01-01-2030` gives a result starting with `New contact added: Ann Lee (PROSPECT)`, followed by its displayed index. The address is saved as `1 Road ST/CLIENT F/01-01-2030`, and the status and follow-up are not set. `edit 1 n/Bob ST/CLIENT` renames the contact to `Bob ST/CLIENT`.<br>
+   We plan to make `add` and `edit` check each value for a known prefix (`n/`, `p/`, `e/`, `a/`, `st/`, `t/` or `f/`) typed with one or more capital letters after a space. If one is found, the command changes nothing and shows: `Prefixes must be typed in lowercase. Use st/ instead of ST/.` `A/L` and `A/P` inside a name stay allowed, so `add n/Ravi A/L Kumar p/92345679 e/ravi@example.com a/10 Tampines St 1` still works.
+
+1. **Keep `a/l` and `a/p` in a name as part of the name.**
+   A lowercase `a/` always starts the address, even inside a name. For example, `edit 2 n/Ravi a/l Kumar` gives `Edited contact: Ravi; ... Address: l Kumar; ...`, so the name loses `a/l Kumar` and the address is overwritten. `add n/Ravi a/l Kumar p/92345678 e/ravi@example.com a/10 Tampines St 1` fails with `Multiple values specified for the following single-valued field(s): a/`. The UG lists this as a known issue.<br>
+   We plan to treat `a/` as part of the name when it comes after `n/` with no other prefix in between, and is followed by a single `l` or `p` (in either case) and then a space. The name is saved with `A/L` or `A/P` in capitals. `edit 2 n/Ravi a/l Kumar` then gives `Edited contact: Ravi A/L Kumar; ...` and leaves the address unchanged. An `a/` anywhere else still starts the address, so `edit 2 a/Lorong 1 Geylang` still sets the address.
+
+1. **Point out a missing space after the index in `edit`.**
+   `edit 4st/CLIENT` gives `Index must be a positive integer.`, although 4 is a positive integer. The real problem is the missing space before `st/`.<br>
+   We plan to check whether the text in front of the first prefix is a positive integer followed directly by a known prefix. If it is, the command changes nothing and shows: `Add a space between the index and st/, e.g. edit 4 st/CLIENT.` Other invalid indexes, such as `edit abc st/CLIENT`, keep the current message.
+
+1. **Treat an index above 2147483647 as an index outside the list.**
+   An index is read as a Java `int`, so a larger number is rejected as if it were not a number at all. `delete 2147483647` gives `There is no contact 2147483647. The list shows 8 contacts.`, but `delete 99999999999` and `done 2147483648` give `Index must be a positive integer.`, which is not true.<br>
+   We plan to give a positive whole number that is too large to store the same message as any other index outside the list. `delete 99999999999` then gives `There is no contact 99999999999. The list shows 8 contacts.` This applies to every command that takes an index: `delete`, `edit`, `done`, `contacted`, `note`, `history` and both indexes of `deletenote`.
+
+1. **Accept only the digits 0 to 9 in an index.**
+   Java's number parser also accepts digits from other scripts, so they work as indexes. `delete ١` (the Arabic-Indic digit one) gives `Deleted contact: John Tan`, and `edit ２ n/Bob Wide` (a full-width 2) renames the second contact. Other numbers are stricter: `due ７` is rejected with `Number of days must be a whole number from 0 to 365, e.g. due 7.`<br>
+   We plan to accept an index only if every character in it is one of the digits 0 to 9. `delete ١` then gives `Index must be a positive integer.` and deletes nothing.
+
+1. **Say that `find` cannot search by name and phone at the same time.**
+   `find alice p/9123` and `find p/9123 alice` give `Phone search keywords must contain digits only. Example: find p/9123`, although `9123` is all digits. The real problem is that a name keyword and a phone search are mixed.<br>
+   We plan to give this case its own message when there is a name keyword before `p/` or a word after the phone digits: `Search by name or by phone, not both. Use find KEYWORD [MORE_KEYWORDS]... or find p/PHONE_DIGITS.` A phone search with a non-digit value, such as `find p/9a23`, keeps the current message.
+
+1. **Make email and address optional when adding a contact.**
+   `add` requires `e/` and `a/`, so a prospect known only by name and phone cannot be added. For example, `add n/Jane Doe p/98765432` gives `Missing required field(s): e/EMAIL, a/ADDRESS`. The only workaround is a made-up email and address, which then appear on the contact card and in the data file as if they were real.<br>
+   We plan to make `e/EMAIL` and `a/ADDRESS` optional in `add`, like `st/`, `f/` and `t/`. A contact added without them has no email or address: the contact card leaves out those lines and the data file stores no value for them. `add n/Jane Doe p/98765432` then gives `New contact added: Jane Doe (PROSPECT)`. Name and phone stay required, and a given `e/` or `a/` value must still be valid, so `add n/Jane Doe p/98765432 e/jane` still shows the email format error.
